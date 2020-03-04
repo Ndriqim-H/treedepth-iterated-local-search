@@ -10,8 +10,7 @@ if __name__ == '__main__':
       print()
       #to do
       #apply hill climbing algorithm to improve solution / until signal is not sent
-
-  print(alg.solution)
+      
   alg.save_results("file_name.out")
-
+  return 1
 
