@@ -54,7 +54,7 @@ class hill_climbing:
 
     def save_solution(self,_output_file):
         file = open(_output_file, "w+")
-        file.write(str(len(self.actualSolution)) + "\n")
+        #file.write(str(len()) + "\n") - thellesia e pemes - to do
         for i in range(0, len(self.solution), 1):
             file.write(str(self.solution[i]) + "\n")
         file.close()
