@@ -8,10 +8,10 @@ if __name__ == '__main__':
   alg = hill_climbing(tree.matrix,tree.total_points)
   while not signal_handler.finish_proccess:
       print()
-      #dosomething
+      #to do
+      #apply hill climbing algorithm to improve solution / until signal is not sent
 
   print(alg.solution)
   alg.save_results("file_name.out")
-  #while not signal_handler.finish_proccess:
 
 
