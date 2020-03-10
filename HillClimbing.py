@@ -8,15 +8,13 @@ class hill_climbing:
     size = 0
     solution = []
     root = -1
-    leaf = -1
+    fitness = 0
 
     def __init__(self,_input_form, _size):
         self.input_form = _input_form
         self.size = _size
         self.root = self.get_root()
-        self.leaf = self.get_leaf()
         self.initialize_solution()
-        self.initialize_help_form()
 
     def get_root(self):
         root = 1
@@ -32,31 +30,22 @@ class hill_climbing:
             self.help_form[i] = []
         self.help_form[self.root] = [-1]
 
-    def get_leaf(self):
-        leaf = copy.copy(self.root)
-        while leaf == self.root:
-            leaf = random.randint(1, self.size)
-        return leaf
-
     def initialize_solution(self):
         random_array = random.sample(range(1, self.size+1), self.size)
-        for i in range(0,self.size):
-            if i == self.leaf - 1:
-                continue
-
-            if i == self.root - 1:
-                self.solution.append(0)
-                continue
-
-            item, random_array = self.get_random_item_array(i,random_array)
-            self.solution.append(item)
-
+        self.solution = [-1] * 100
+        self.solution[self.root-1] = 0
+        random_array.remove(self.root)
+        random.shuffle(random_array)
+        _parent = copy.copy(self.root)
+        for i in range(0,len(random_array)):
+            self.solution[random_array[i]-1] = copy.copy(_parent)
+            _parent = copy.copy(random_array[i])
         return 0
 
     def get_random_item_array(self,i,array):
         item = -1
         for tmp in range(0,len(array)):
-            if array[tmp] != i and array[tmp] != self.root and array[tmp] != self.leaf:
+            if array[tmp] != i  and array[tmp] != self.leaf:
                 item = array[tmp]
                 array.pop(tmp)
                 return item, array
@@ -80,12 +69,23 @@ class hill_climbing:
             return True
         return False
 
-    def is_legal_move(self,_x,_y):
+    def is_legal_move(self,_point,_parent):
 
         return True
 
     def calculate_full_fitness(self,_solution):
-        return 0
+        tmp_array = list(range(1, 101))
+        leafs = list(set(tmp_array) - set(_solution))
+        leafs = list(set(leafs) - set([self.root]))
+        all_fitness_values = []
+        for leaf in leafs:
+            _value = 1
+            _parent = _solution[leaf-1]
+            while  _solution[_parent-1] != 0:
+                _value = _value + 1
+                _parent = _solution[_parent-1]
+            all_fitness_values.append(_value)
+        self.fitness = max(all_fitness_values)
 
     def calculate_fitness(self,_x,_y):
         return 0
@@ -105,4 +105,13 @@ class hill_climbing:
         for i in range(0,len(self.solution)):
             if _parent == self.solution[i]:
                 all_children.append(i+1)
-        return  all_children
+        return all_children
+
+    def find_all_parents(self,_solution,_node):
+        _parents = []
+        _parent = _solution[_node-1]
+        _parents.append(_parent)
+        while _solution[_parent-1] != 0:
+            _parent = _solution[_parent-1]
+            _parents.append(_parent)
+        return _parents
