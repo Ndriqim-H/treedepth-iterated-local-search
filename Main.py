@@ -7,10 +7,7 @@ if __name__ == '__main__':
   tree = treedepth("public/heur_001.gr")
   alg = hill_climbing(tree.matrix,tree.total_points)
   while not signal_handler.finish_proccess:
-      print()
-      #to do
-      #apply hill climbing algorithm to improve solution / until signal is not sent
-      
-  alg.save_results("file_name.out")
-  return 1
+    alg.move()
+  alg.calculate_full_fitness(alg.solution)
+  alg.save_solution("heur_001_solution.out")
 
