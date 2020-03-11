@@ -65,7 +65,7 @@ class hill_climbing:
         for leaf in leafs:
             for y in range(0,100):
                 if self.is_legal_move(leaf,y):
-                    print("YESSSSSSSSS")
+                    print("")
 
 
     def is_legal_move(self,_point,_parent):
