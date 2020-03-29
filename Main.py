@@ -1,6 +1,7 @@
 from HillClimbing import hill_climbing
 from Treedepth import treedepth
 from SignalHandler import signal_handler
+from TabuSearch import tabu_search
 
 if __name__ == '__main__':
     signal_handler = signal_handler()
