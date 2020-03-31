@@ -31,7 +31,7 @@ class hill_climbing:
 
     def initialize_solution(self):
         random_array = random.sample(range(1, self.size+1), self.size)
-        self.solution = [-1] * 100
+        self.solution = [-1] * self.size
         self.solution[self.root-1] = 0
         random_array.remove(self.root)
         random.shuffle(random_array)
@@ -54,12 +54,12 @@ class hill_climbing:
         file.close()
 
     def move(self):
-        tmp_array = list(range(1, 101))
+        tmp_array = list(range(1, len(self.solution)+1))
         leafs = list(set(tmp_array) - set(self.solution))
         leafs = list(set(leafs) - set([self.root]))
         x = random.choice(leafs)
         y = random.randint(0,len(self.solution))
-        while x + 1 == y:
+        while x == y:
             y = random.randint(0,len(self.solution))
         if self.is_legal_move(x,y):
             self.solution[x-1] = copy.copy(y)
@@ -81,7 +81,7 @@ class hill_climbing:
         return True
 
     def specific_move(self):
-        tmp_array = list(range(1, 101))
+        tmp_array = list(range(1, len(self.solution)+1))
         leafs = list(set(tmp_array) - set(self.solution))
         leafs = list(set(leafs) - set([self.root]))
         #TO DO
@@ -105,7 +105,7 @@ class hill_climbing:
         return False
 
     def calculate_full_fitness(self):
-        tmp_array = list(range(1, 101))
+        tmp_array = list(range(1, len(self.solution)+1))
         leafs = list(set(tmp_array) - set(self.solution))
         leafs = list(set(leafs) - set([self.root]))
         all_fitnes_values = []
@@ -150,8 +150,10 @@ class hill_climbing:
 
     def find_all_parents(self,_node):
         _parents = []
+
         _parent = self.solution[_node-1]
-        _parents.append(_parent)
+        if(self.solution[_node-1]!=0):
+            _parents.append(_parent)
         while self.solution[_parent-1] != 0:
             _parent = self.solution[_parent-1]
             _parents.append(_parent)
