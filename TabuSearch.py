@@ -1,75 +1,113 @@
 from Parameters import *
 from copy import *
-from Solution import solution
-from random import random
-from random import randrange
+from Solution import Solution
+import random
 
 
-class tabu_search:
-    def __init__(self, _input_form):
-        self.input_form = _input_form
-        self.n_nodes = len(_input_form)
-        self.solution = self.ts_algorithm()
-        self.tabu_list = {}  # A dictionary: key-> the tuple of two nodes being tweaked, whereas the value is the iteration
+class TabuSearch:
+    def __init__(self, _adjacency_list):
+        self.adjacency_list = _adjacency_list
+        self.n_nodes = len(_adjacency_list)
 
     def ts_algorithm(self):
-        current = solution(self.input_form)  # Use get_initial_solution function
-        best = copy(current)
-        # when tweak has occurred
+        current = Solution(self.adjacency_list)  # Use get_initial_solution function
+        best = deepcopy(current)
+        tabu_list = {}  # A dictionary: key-> the tuple of two nodes being tweaked, whereas the value is the iteration
         iteration_counter = 1
         while iteration_counter <= number_of_iterations:
             tweak_counter = 1
-            current_tweak = copy(current)
+            current_tweak = deepcopy(current)
             tweak_feature_list = list()  # this should contain a list should a tuples of nodes being tweaked
             while tweak_counter <= number_of_tweaks:
-                #implement
-                node1, node2, next_solution = self.tweak(current_tweak,iteration_counter)
-                key = str(node1) + '-' + str(node2)
-                value = iteration_counter
-                feature = [key, value]
+                node1, node2, feature, new_solution = self.move(current_tweak, tabu_list, iteration_counter)
                 tweak_feature_list.append(feature)
-                # if quality of next better than current_tweak set  current_tweak = next##
-
-                ##########################################################################
+                if new_solution.fitness <= current_tweak.fitness:
+                    current_tweak = deepcopy(new_solution)
                 tweak_counter += 1
-            current = copy(current_tweak)
+            current = deepcopy(current_tweak)
             for tf in tweak_feature_list:
-                self.tabu_list[tf[0]] = tf[1]
-            # if quality of current better than best set best = current
-
+                tabu_list[tf[0]] = tf[1]
+            if current.fitness < best.fitness:
+                best = deepcopy(current)
+                print("Best fitness: ", best.fitness)
             iteration_counter += 1
         return best
 
-    def tweak(self,_solution,_iteration):
-        tmp_array = list(range(1, len(self.input_form)+1))
-        leafs = list(set(tmp_array) - set(_solution.representation))
-        leafs = list(set(leafs) - set([_solution.root]))
-        random_leaf = random.choice(leafs)
-        random_parent = random.randint(0,len(_solution.representation))
-        while random_leaf == random_parent:
-            random_parent = random.randint(0,len(self.solution))
-        if self.is_tabu(random_leaf,_iteration):
+    def move(self, s: Solution, tabu_list, iteration_counter):
+        result: Solution = deepcopy(s)
+        feature = list()
+        tmp_array = list(range(1, len(s.representation) + 1))
+        leafs = list(set(tmp_array) - set(s.representation))
+        leafs = list(set(leafs) - set([s.root]))
+        legal_move_generated = False
+        while not legal_move_generated:
+            node1 = random.choice(leafs)
+            node2 = random.randint(0, len(s.representation))
+            while node1 == node2:
+                node2 = random.randint(0, len(s.representation))
+            key = str(node1) + '-' + str(node2)
+            value = iteration_counter
+            feature = [key, value]
+            if not self.is_tabu(key, tabu_list, iteration_counter):
+                if self.is_legal_move(node1, node2, s):
+                    result.representation[node1 - 1] = deepcopy(node2)
+                    result.fitness = self.calculate_full_fitness(s)
+                    legal_move_generated = True
+        return node1, node2, feature, result
+
+    @staticmethod
+    def is_tabu(key, tabu_list, iteration):
+        if key not in tabu_list.keys():
             return False
-        if self.is_legal_move(random_leaf,random_parent):
-            _solution.representation[random_leaf-1] = copy.copy(random_parent)
-        _solution.calculate_fitness()
-        return random_leaf, random_parent, _solution
+        if iteration - tabu_list[key] <= tabu_list_length:
+            return True
+        else:
+            return False
 
-
-    def is_legal_move(self,_point,_parent):
-        all_point_siblings = self.find_all_parents(_point)
-        all_parent_siblings = self.find_all_parents_include(_parent)
-        for parent_sibling in all_parent_siblings:
-            if parent_sibling in all_point_siblings:
-                all_point_siblings.remove(parent_sibling)
-        for point_sibling in all_point_siblings:
-            if _point in self.input_form[point_sibling]:
+    def is_legal_move(self, _point, _parent, s: Solution):
+        all_node_parent = self.find_all_parents(_point, s)
+        all_parent_parent = self.find_all_parents_include(_parent, s)
+        for pp in all_parent_parent:
+            if pp in all_node_parent:
+                all_node_parent.remove(pp)
+        for old_parent in all_node_parent:
+            if _point in self.adjacency_list[old_parent]:
                 return False
         return True
 
-    def is_tabu(self,_key,_iteration):
-        if _key not in self.tabu_list:
-            return False
-        if _iteration - self.tabu_list[_key] >= tabu_list_length:
-            return False
-        return True
+    @staticmethod
+    def calculate_full_fitness(s: Solution):
+        tmp_array = list(range(1, len(s.representation) + 1))
+        leafs = list(set(tmp_array) - set(s.representation))
+        leafs = list(set(leafs) - set([s.root]))
+        all_fitness_values = []
+        for leaf in leafs:
+            _value = 2
+            _parent = s.representation[leaf - 1]
+            while s.representation[_parent - 1] != 0:
+                _value = _value + 1
+                _parent = s.representation[_parent - 1]
+            all_fitness_values.append(_value)
+        result = max(all_fitness_values)
+        return result
+
+    @staticmethod
+    def find_all_parents(_node, s: Solution):
+        _parents = []
+        _parent = s.representation[_node - 1]
+        if s.representation[_node - 1] != 0:
+            _parents.append(_parent)
+        while s.representation[_parent - 1] != 0:
+            _parent = s.representation[_parent - 1]
+            _parents.append(_parent)
+        return _parents
+
+    @staticmethod
+    def find_all_parents_include(_node, s: Solution):
+        _parents = [_node]
+        _parent = s.representation[_node - 1]
+        _parents.append(_parent)
+        while s.representation[_parent - 1] != 0:
+            _parent = s.representation[_parent - 1]
+            _parents.append(_parent)
+        return _parents

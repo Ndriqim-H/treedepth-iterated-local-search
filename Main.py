@@ -1,15 +1,13 @@
 from HillClimbing import hill_climbing
-from Treedepth import treedepth
+from Pre_Post_Process import PrePostProcess
 from SignalHandler import signal_handler
-from TabuSearch import tabu_search
+from TabuSearch import TabuSearch
+from Solution import Solution
+import Parameters
 
 if __name__ == '__main__':
     signal_handler = signal_handler()
-    tree = treedepth("public/heur_001.gr")
-    ##alg = hill_climbing(tree.matrix,tree.total_points)
-    tabu_search_algorithm = tabu_search(tree.matrix)
-    tabu_search_algorithm.ts_algorithm()
-    #while not signal_handler.finish_proccess:
-    #  alg.specific_move()
-    #alg.calculate_full_fitness(alg.solution)
-    #alg.save_solution("heur_001_solution.out")
+    pre_post = PrePostProcess("instances/" + Parameters.instance_name + ".gr")
+    tabu_search_algorithm = TabuSearch(pre_post.adjacency_list)
+    best: Solution = tabu_search_algorithm.ts_algorithm()
+    pre_post.save_solution("solutions/" + Parameters.instance_name + "_solution.out", best)
