@@ -4,4 +4,5 @@ number_of_tweaks = 3
 tabu_list_length = 0
 
 # Problem related parameters
-instance_name = 'exact_001'
+instance_name = 'heur_005'
+instance_index = 181

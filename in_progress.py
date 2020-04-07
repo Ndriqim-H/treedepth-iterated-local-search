@@ -1,6 +1,7 @@
 from Solution import Solution
 import Parameters
 import random
+import sys
 
 
 def get_sample_solution():
@@ -60,9 +61,11 @@ def fill_adjacency_list(total_points, adjacency_list):
 
 def get_initial_solution(adjacency_list: dict):
     n_nodes = len(adjacency_list)
-    # random_node_list = random.sample(range(0, n_nodes), n_nodes)
-    random_node_list = [0, 4, 1, 6, 7, 9, 8, 5, 2, 3]
-    representation = list()  # [[3,4],[],[],[5],[9],[1],[]...]
+    random_node_list = random.sample(range(0, n_nodes), n_nodes)
+    # random_node_list = [0, 4, 1, 6, 7, 9, 8, 5, 2, 3]
+    # random_node_list = [5, 7, 11, 10, 1, 3, 4, 14, 16, 2, 9, 8, 13, 15, 0, 6, 12]  # exact 003
+    print(random_node_list)
+    representation = list()
     for i in range(n_nodes):
         lst = list()
         representation.append(lst)
@@ -71,8 +74,9 @@ def get_initial_solution(adjacency_list: dict):
     representation[root].append(first_child)
     for n in range(2, n_nodes, 1):
         node = random_node_list[n]
-        node_to_link, increase_height = find_node_to_link(adjacency_list, representation, root, root, node)
-        if increase_height:
+        shift_node_up = False
+        node_to_link, shift_node_up = find_node_to_link(adjacency_list, representation, root, root, node, shift_node_up)
+        if shift_node_up:
             child_list = representation[node_to_link]
             representation[node_to_link] = list()
             representation[node_to_link].append(node)
@@ -84,43 +88,66 @@ def get_initial_solution(adjacency_list: dict):
     return result
 
 
-def find_node_to_link(adjacency_list: dict, representation, parent, current_node_to_link, node):
+def find_node_to_link(adjacency_list: dict, representation, parent, current_node_to_link, node, shift_node_up):
     node_to_link = current_node_to_link
-    increase_height = False
     child_list = representation[parent]
     if len(child_list) == 0:
-        return node_to_link, increase_height
+        return node_to_link, shift_node_up
     elif len(child_list) == 1:
         node_to_link_candidate = child_list[0]
         if node in adjacency_list[node_to_link_candidate]:
             node_to_link = node_to_link_candidate
-        node_to_link, increase_height = find_node_to_link(adjacency_list, representation, node_to_link_candidate,
-                                                          node_to_link, node)
+        node_to_link, shift_node_up = find_node_to_link(adjacency_list, representation, node_to_link_candidate,
+                                                        node_to_link, node, shift_node_up)
     else:
         num_paths = 0
         for child in child_list:
-            must_link_to_this_path = False
+            previous_node_to_link = node_to_link
             if node in adjacency_list[child]:
                 node_to_link = child
-                must_link_to_this_path = True
-            node_to_link, increase_height = find_node_to_link(adjacency_list, representation, child, node_to_link, node)
-            if must_link_to_this_path:
+            node_to_link, shift_node_up = find_node_to_link(adjacency_list, representation, child, node_to_link, node,
+                                                            shift_node_up)
+            if previous_node_to_link != node_to_link:
                 num_paths += 1
                 if num_paths == 2:
                     node_to_link = parent
-                    increase_height = True
+                    shift_node_up = True
                     break
-    return node_to_link, increase_height
+    return node_to_link, shift_node_up
+
+
+def convert_to_pace_format(s: Solution):
+    result = [-1] * len(s.representation)
+    result[s.root] = 0  # revert to one based index
+    for i in range(len(s.representation)):
+        node_list = s.representation[i]
+        if len(node_list) > 0:
+            for node in node_list:
+                result[node] = i + 1  # revert to one based index
+    return result
+
+
+def save_solution(_output_file, formatted_solution: list, fitness):
+    file = open('solutions/' + _output_file + '.tree', "w+")
+    file.write(str(fitness) + "\n")
+    for i in formatted_solution:
+        file.write(str(i) + "\n")
+    file.close()
 
 
 def main():
-    s = get_sample_solution()
-    adjacency_list = get_adjacency_list(Parameters.instance_name)
-    print(adjacency_list)
-    s = get_initial_solution(adjacency_list)
-    print("Representation: ", s.representation)
-    print("Root: ", s.root)
-    print("Fitness: ", s.fitness)
+    sys.setrecursionlimit(1000000000)
+    for i in range(Parameters.instance_index, Parameters.instance_index+2, 2):
+        instance_name = "heur_" + "{0:03}".format(i)
+        adjacency_list = get_adjacency_list(instance_name)
+        print(adjacency_list)
+        s = get_initial_solution(adjacency_list)
+        print("Representation: ", s.representation)
+        print("Root: ", s.root)
+        print("Fitness: ", s.fitness)
+        print("recursion limit:", sys.getrecursionlimit())
+        formatted_solution = convert_to_pace_format(s)
+        save_solution(instance_name, formatted_solution, s.fitness)
 
 
 main()
