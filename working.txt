@@ -1,0 +1,42 @@
+    def find_node_to_link_non_recursive(self, representation, parent, node, is_internal_node):
+        node_to_link = parent
+        child_list = representation[node_to_link]
+        if len(child_list) == 0:
+            return node_to_link, is_internal_node
+        else:
+            parent_stack = LifoQueue()
+            child_list_stack = LifoQueue()
+            parent_stack.put(parent)
+            child_list_stack.put(child_list)
+            while not parent_stack.empty():
+                current_child_list = child_list_stack.queue[-1]
+                while len(current_child_list) > 0:
+                    left_child = current_child_list[0]
+                    current_child_list = representation[left_child]
+                    parent_stack.put(left_child)
+                    child_list_stack.put(current_child_list)
+                num_paths = 0
+                current_parent = parent_stack.get()
+                current_child_list = child_list_stack.get()
+                for node_to_link_candidate in current_child_list:
+                    previous_node_to_link = node_to_link
+                    if node in self.adjacency_list[node_to_link_candidate]:
+                        node_to_link = node_to_link_candidate
+                    candidate_child_list = representation[node_to_link_candidate]
+                    parent_child_list_queue.put([node_to_link_candidate, current_child_list])
+                    successor_queue = Queue()
+                    for c in current_child_list:
+                        successor_queue.put(c)
+                    while not successor_queue.empty():
+                        successor_candidate = successor_queue.get()
+                        if node in self.adjacency_list[successor_candidate]:
+                            node_to_link = successor_candidate
+                        for n in representation[successor_candidate]:
+                            successor_queue.put(n)
+                    if previous_node_to_link != node_to_link:
+                        num_paths += 1
+                        if num_paths == 2:
+                            node_to_link = current_parent
+                            is_internal_node = True
+                            return node_to_link, is_internal_node
+        return node_to_link, is_internal_node

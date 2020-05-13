@@ -2,7 +2,11 @@ from Solution import Solution
 import Parameters
 import random
 import sys
+
 # import networkx as nx
+
+node_list = list()
+edge_list = list()
 
 
 def get_sample_solution():
@@ -43,6 +47,8 @@ def get_adjacency_list(file_name):
     file = open('instances/' + file_name + '.gr', 'r')
     first_line = file.readline().split(' ')
     total_points = int(first_line[2])
+    node_list.append(int(first_line[2]))
+    edge_list.append(int(first_line[3]))
     fill_adjacency_list(total_points, adjacency_list)
     file_rows = filter(None, file.read().split('\n'))
     for row in file_rows:
