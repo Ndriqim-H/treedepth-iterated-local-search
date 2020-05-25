@@ -12,17 +12,18 @@ import pandas as pd
 
 
 class TabuSearch:
-    def __init__(self, _adjacency_list):
+    def __init__(self, _adjacency_list, _n_nodes, _n_edges):
         self.adjacency_list = _adjacency_list
-        self.n_nodes = len(_adjacency_list)
+        self.n_nodes = _n_nodes
+        self.n_edges = _n_edges
         if Parameters.fully_random_initial_solution:
             self.number_of_edges_list = random.sample(range(0, self.n_nodes), self.n_nodes)
         else:
             self.number_of_edges_list = self.create_number_of_edges_list()
         self.tabu_list = {}
+        Parameters.minimal_perturb_intensity = 1*int(log2(self.n_nodes * self.n_edges))
 
     def ts_algorithm(self):
-        # current = self.get_simple_initial_solution()
         current = self.get_initial_solution()
         best = copy(current)
         iteration_counter = 1
@@ -57,7 +58,7 @@ class TabuSearch:
             else:
                 iteration_no_improvement_counter += 1
             if iteration_no_improvement_counter % Parameters.number_of_iterations_with_no_improvement == 0:
-                current = self.perturb(best, iteration_counter, iteration_no_improvement_counter)
+                current = self.perturb(best, iteration_counter,iteration_no_improvement_counter)
                 # Parameters.insert_nodes_in_random_order = not Parameters.insert_nodes_in_random_order
                 # Parameters.insert_nodes_in_descending_order = not Parameters.insert_nodes_in_descending_order
                 Parameters.max_number_of_paths = Parameters.max_number_of_paths_list[
@@ -69,12 +70,10 @@ class TabuSearch:
         current_solution = copy(s)
         additional_perturbations = int(log2(
             int(1 + iteration_no_improvement_counter / Parameters.number_of_iterations_with_no_improvement)))
-        # print("test - additional_perturbations:", additional_perturbations)
         for i in range(Parameters.minimal_perturb_intensity + additional_perturbations):
             selected_nodes, node_type = self.select_nodes(current_solution, iteration_counter)
             new_solution = self.move_node(current_solution, selected_nodes, node_type)
             additional_deprecation = additional_perturbations / 100
-            # print("test - additional_deprecation: ",additional_deprecation)
             if new_solution.fitness * (
                     Parameters.perturbed_solution_deprecation_percentage - additional_deprecation) < current_solution.fitness:
                 current_solution = copy(new_solution)
@@ -132,7 +131,7 @@ class TabuSearch:
                     Parameters.node_type_selection_probability['root'] + \
                     Parameters.node_type_selection_probability['top'] + \
                     Parameters.node_type_selection_probability['level']:
-                selected_nodes = self.get_level_nodes(s)
+                selected_nodes = self.get_longer_level_nodes(s)
                 node_type = 'level'
             elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
                     Parameters.node_type_selection_probability['internal'] + \
@@ -151,7 +150,7 @@ class TabuSearch:
                     Parameters.node_type_selection_probability['level'] + \
                     Parameters.node_type_selection_probability['path'] + \
                     Parameters.node_type_selection_probability['leafs']:
-                selected_nodes = self.get_leaf_nodes(s.representation)
+                selected_nodes = self.get_leaf_nodes_with_non_related_parent(s.representation, s.root)
                 node_type = 'leafs'
             elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
                     Parameters.node_type_selection_probability['internal'] + \
@@ -164,6 +163,18 @@ class TabuSearch:
                     Parameters.node_type_selection_probability['partial_path']:
                 selected_nodes = self.get_partial_path_nodes(s)
                 node_type = 'partial_path'
+            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
+                    Parameters.node_type_selection_probability['internal'] + \
+                    Parameters.node_type_selection_probability['leaf'] + \
+                    Parameters.node_type_selection_probability['root'] + \
+                    Parameters.node_type_selection_probability['top'] + \
+                    Parameters.node_type_selection_probability['level'] + \
+                    Parameters.node_type_selection_probability['path'] + \
+                    Parameters.node_type_selection_probability['leafs'] + \
+                    Parameters.node_type_selection_probability['partial_path'] + \
+                    Parameters.node_type_selection_probability['partial_path_bottom']:
+                selected_nodes = self.get_partial_path_from_bottom_nodes(s.representation, s.fitness, s.root)
+                node_type = 'partial_path_bottom'
             else:
                 selected_nodes = self.get_bottom_nodes(s)
                 node_type = 'bottom'
@@ -188,6 +199,16 @@ class TabuSearch:
                 for c in s.representation[parent]:
                     children.append(c)
             q_parents.put(children)
+        return result
+
+    def get_longer_level_nodes(self, s: Solution):
+        result = self.get_level_nodes(s)
+        max_level = len(result)
+        for i in range(random.randrange(1, Parameters.max_number_of_paths)):
+            node_to_move_list = self.get_level_nodes(s)
+            if len(node_to_move_list) > max_level:
+                result = node_to_move_list
+                max_level = len(node_to_move_list)
         return result
 
     @staticmethod
@@ -287,21 +308,42 @@ class TabuSearch:
                 result.append(node)
         return result
 
-    @staticmethod
-    def get_internal_node(representation: list, root):
+    def get_leaf_nodes_with_non_related_parent(self, representation: list, root):
+        result = list()
+        for node in range(len(representation)):
+            child_list = representation[node]
+            if len(child_list) == 0:
+                if node in representation[root]:
+                    parent = root
+                else:
+                    parent = self.find_non_root_parent_node(representation, node)
+                if node not in self.adjacency_list[parent]:
+                    result.append(node)
+        return result
+
+    def get_internal_node(self, representation: list, root):
         random_start_index = random.randrange(0, len(representation))
         random_walk = random.randrange(0, int(Parameters.random_walk_limit * len(representation)))
         rw_counter = 0
         node = random_start_index
         while node < len(representation):
             if len(representation[node]) != 0 and node != root:
+                if node in representation[root]:
+                    parent = root
+                else:
+                    parent = self.find_non_root_parent_node(representation, node)
+                if node not in self.adjacency_list[parent]:
+                    result = node
+                    break
                 if rw_counter == random_walk:
-                    return node
+                    result = node
+                    break
                 rw_counter += 1
             if node != len(representation) - 1:
                 node += 1
             else:
                 node = 0
+        return result
 
     def get_sub_tree_nodes(self, representation: list, fitness, root):
         random_start_index = random.randrange(0, len(representation))
@@ -319,10 +361,35 @@ class TabuSearch:
         for i in range(random_walk):
             parent = self.find_non_root_parent_node(representation, current_leaf_node)
             if parent == root:
-                break  # root not is not included
+                break  # root node is not included
             current_leaf_node = parent
         result = [current_leaf_node]
         result.extend(self.get_node_successors(representation, current_leaf_node))
+        return result
+
+    def get_partial_path_from_bottom_nodes(self, representation: list, fitness, root):
+        random_start_index = random.randrange(0, len(representation))
+        random_walk = random.randrange(1, max(2, int(Parameters.max_partial_path_length_percentage * fitness)))
+        node = random_start_index
+        result = list()
+        while node < len(representation):
+            if len(representation[node]) == 0:
+                leaf_node = node
+                break
+            if node != len(representation) - 1:
+                node += 1
+            else:
+                node = 0
+        current_leaf_node = leaf_node
+        result.append(current_leaf_node)
+        for i in range(random_walk):
+            parent = self.find_non_root_parent_node(representation, current_leaf_node)
+            if parent == root:
+                break  # root node is not included
+            if current_leaf_node not in self.adjacency_list[parent]:
+                break
+            current_leaf_node = parent
+            result.append(current_leaf_node)
         return result
 
     def get_node_successors(self, representation, parent):
@@ -423,6 +490,29 @@ class TabuSearch:
                     parent_to_link = new_parent
             nodes_to_move.pop(0)  # Remove first node
             nodes_to_move = self.get_ordered_node_list(nodes_to_move)
+            for node in nodes_to_move:
+                self.place_node(representation, new_root, new_root, node)
+        elif node_type == 'partial_path_bottom':
+            new_root = s.root
+            nodes_to_move.reverse()
+            parent_to_link = self.find_non_root_parent_node(s.representation, nodes_to_move[0])
+            if parent_to_link == -1:
+                parent_to_link = new_root
+            representation[parent_to_link].remove(nodes_to_move[0])
+            for n in range(0, len(nodes_to_move) - 1):
+                current_parent = nodes_to_move[n]
+                current_child = nodes_to_move[n + 1]
+                child_list = list(representation[current_parent])
+                representation[current_parent] = list()
+                child_list.remove(current_child)
+                if len(child_list) > 0:
+                    new_parent = child_list[random.randrange(0, len(child_list))]
+                    child_list.remove(new_parent)
+                    representation[new_parent].extend(child_list)
+                    representation[parent_to_link].append(new_parent)
+                    parent_to_link = new_parent
+            if len(nodes_to_move) > 1:
+                nodes_to_move = self.get_ordered_node_list(nodes_to_move)
             for node in nodes_to_move:
                 self.place_node(representation, new_root, new_root, node)
         elif node_type == 'level':
@@ -569,25 +659,6 @@ class TabuSearch:
                         break
         return node_to_link, is_internal_node
 
-    # def find_node_to_link_non_recursive(self, representation, parent, node, is_internal_node):
-    #     node_to_link = parent
-    #     child_list = representation[node_to_link]
-    #     if len(child_list) == 0:
-    #         return node_to_link, is_internal_node
-    #     else:
-    #         candidate_stack = LifoQueue()
-    #         for i in range(len(child_list) - 1, -1, -1):
-    #             candidate_stack.put(child_list[i])
-    #         while not candidate_stack.empty():
-    #             candidate = candidate_stack.get()
-    #             if node in self.adjacency_list[candidate]:
-    #                 node_to_link = candidate
-    #             child_list = representation[candidate]
-    #             for i in range(len(child_list) - 1, -1, -1):
-    #                 candidate_stack.put(child_list[i])
-    #
-    #     return node_to_link, is_internal_node
-
     def get_fitness(self, representation, root):
         result = 1 + self.calculate_fitness(representation, root)
         return result
@@ -673,8 +744,8 @@ def main():
     instance_list = list()
     for i in range(Parameters.start_instance_index, Parameters.end_instance_index, 2):
         instance_name = Parameters.instance_type + "_" + "{0:03}".format(i)
-        adjacency_list = Utilities.get_adjacency_list(instance_name)
-        ts_alg = TabuSearch(adjacency_list)
+        adjacency_list, n_nodes, n_edges = Utilities.get_adjacency_list(instance_name)
+        ts_alg = TabuSearch(adjacency_list, n_nodes, n_edges)
         s = ts_alg.ts_algorithm()
         print(instance_name + ": ", s.fitness)
         formatted_solution = Utilities.convert_to_pace_format(s)

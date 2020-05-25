@@ -48,7 +48,9 @@ def get_adjacency_list(file_name):
     first_line = file.readline().split(' ')
     total_points = int(first_line[2])
     node_list.append(int(first_line[2]))
+    n_nodes = int(first_line[2])
     edge_list.append(int(first_line[3]))
+    n_edges = int(first_line[3])
     fill_adjacency_list(total_points, adjacency_list)
     file_rows = filter(None, file.read().split('\n'))
     for row in file_rows:
@@ -60,7 +62,7 @@ def get_adjacency_list(file_name):
             adjacency_list[node1].append(node2)
         if node2 in adjacency_list:
             adjacency_list[node2].append(node1)
-    return adjacency_list
+    return adjacency_list, n_nodes, n_edges
 
 
 def fill_adjacency_list(total_points, adjacency_list):
