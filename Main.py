@@ -1,7 +1,7 @@
 from HillClimbing import hill_climbing
 from Pre_Post_Process import PrePostProcess
 from SignalHandler import signal_handler
-from TabuSearch import TabuSearch
+from IteratedLocalSearch import TabuSearch
 from Solution import Solution
 import Parameters
 
