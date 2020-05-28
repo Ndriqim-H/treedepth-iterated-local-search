@@ -44,7 +44,7 @@ def calculate_fitness(representation, parent):
 def get_adjacency_list(file_name):
     adjacency_list = {}
     # edge_graph = nx.Graph()
-    file = open('instances/' + file_name + '.gr', 'r')
+    file = open('instances/' + file_name, 'r')
     first_line = file.readline().split(' ')
     total_points = int(first_line[2])
     node_list.append(int(first_line[2]))
@@ -82,7 +82,8 @@ def convert_to_pace_format(s: Solution):
 
 
 def save_solution(_output_file, formatted_solution: list, fitness):
-    file = open('solutions/' + _output_file + '.tree', "w+")
+    file_name = _output_file[0:9]
+    file = open('solutions/' + file_name + '.tree', "w+")
     file.write(str(fitness) + "\n")
     for i in formatted_solution:
         file.write(str(i) + "\n")
@@ -99,18 +100,3 @@ def count_duplicates_test(representation: list):
             else:
                 duplicate_list.append(node)
     return False
-# def main():
-#     sys.setrecursionlimit(1000000000)
-#     for i in range(Parameters.start_instance_index, Parameters.start_instance_index + 2, 2):
-#         instance_name = "exact_" + "{0:03}".format(i)
-#         adjacency_list = get_adjacency_list(instance_name)
-#         print(adjacency_list)
-#         s = get_initial_solution(adjacency_list)
-#         print("Representation: ", s.representation)
-#         print("Root: ", s.root)
-#         print("Fitness: ", s.fitness)
-#         print("recursion limit:", sys.getrecursionlimit())
-#         formatted_solution = convert_to_pace_format(s)
-#         save_solution(instance_name, formatted_solution, s.fitness)
-#
-# # main()

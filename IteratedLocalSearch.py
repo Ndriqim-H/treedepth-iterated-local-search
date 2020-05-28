@@ -11,7 +11,7 @@ from math import log2
 import pandas as pd
 
 
-class TabuSearch:
+class IteratedLocalSearch:
     def __init__(self, _adjacency_list, _n_nodes, _n_edges):
         self.adjacency_list = _adjacency_list
         self.n_nodes = _n_nodes
@@ -21,7 +21,7 @@ class TabuSearch:
         else:
             self.number_of_edges_list = self.create_number_of_edges_list()
         self.tabu_list = {}
-        Parameters.minimal_perturb_intensity = 1*int(log2(self.n_nodes * self.n_edges))
+        Parameters.minimal_perturb_intensity = 1 * int(log2(self.n_nodes * self.n_edges))
 
     def ts_algorithm(self):
         current = self.get_initial_solution()
@@ -50,7 +50,7 @@ class TabuSearch:
                 self.tabu_list[tabu_feature] = iteration_counter
             if current.fitness < best.fitness:
                 best = copy(current)
-                print("Best fitness: ", best.fitness)
+                # print("Best fitness: ", best.fitness)
                 iteration_no_improvement_counter = 0
                 # Parameters.insert_nodes_in_random_order = False
                 # Parameters.insert_nodes_in_descending_order = True
@@ -58,12 +58,14 @@ class TabuSearch:
             else:
                 iteration_no_improvement_counter += 1
             if iteration_no_improvement_counter % Parameters.number_of_iterations_with_no_improvement == 0:
-                current = self.perturb(best, iteration_counter,iteration_no_improvement_counter)
+                current = self.perturb(best, iteration_counter, iteration_no_improvement_counter)
                 # Parameters.insert_nodes_in_random_order = not Parameters.insert_nodes_in_random_order
                 # Parameters.insert_nodes_in_descending_order = not Parameters.insert_nodes_in_descending_order
                 Parameters.max_number_of_paths = Parameters.max_number_of_paths_list[
                     random.randrange(0, len(Parameters.max_number_of_paths_list))]
             iteration_counter += 1
+            if iteration_no_improvement_counter > 50 * Parameters.number_of_iterations_with_no_improvement:
+                break
         return best
 
     def perturb(self, s: Solution, iteration_counter, iteration_no_improvement_counter):
@@ -740,20 +742,38 @@ class TabuSearch:
 
 
 def main():
-    sys.setrecursionlimit(100000000)
-    instance_list = list()
-    for i in range(Parameters.start_instance_index, Parameters.end_instance_index, 2):
-        instance_name = Parameters.instance_type + "_" + "{0:03}".format(i)
-        adjacency_list, n_nodes, n_edges = Utilities.get_adjacency_list(instance_name)
-        ts_alg = TabuSearch(adjacency_list, n_nodes, n_edges)
-        s = ts_alg.ts_algorithm()
-        print(instance_name + ": ", s.fitness)
-        formatted_solution = Utilities.convert_to_pace_format(s)
-        Utilities.save_solution(instance_name, formatted_solution, s.fitness)
-    #     instance_list.append(instance_name)
-    #     output = pd.DataFrame({'Instance': instance_list, 'Nodes': Utilities.node_list, 'Edges': Utilities.edge_list},
-    #                           columns=['Instance', 'Nodes', 'Edges'])
-    # output.to_csv('number_of_nodes_and_edges.csv', index=False)
+    sys.setrecursionlimit(Parameters.recursion_limit)
+    if len(sys.argv) == 1:
+        print("The input instance is not specified!")
+    elif len(sys.argv) > 2:
+        print("Too many arguments")
+    else:
+        instance_argument = sys.argv[1]
+        instance_argument.lower()
+        instance_argument = instance_argument[2:]
+        if instance_argument[0:5] == 'exact':
+            instance_name = instance_argument
+            adjacency_list, n_nodes, n_edges = Utilities.get_adjacency_list(instance_name)
+            ts_alg = IteratedLocalSearch(adjacency_list, n_nodes, n_edges)
+            s = ts_alg.ts_algorithm()
+            print("Tree depth for instance " + instance_name + ": ", s.fitness)
+            formatted_solution = Utilities.convert_to_pace_format(s)
+            Utilities.save_solution(instance_name, formatted_solution, s.fitness)
+        else:
+            if instance_argument == 'private':
+                Parameters.start_instance_index = 2
+                Parameters.end_instance_index = 200
+            elif instance_argument == 'public':
+                Parameters.start_instance_index = 1
+                Parameters.end_instance_index = 199
+            for i in range(Parameters.start_instance_index, Parameters.end_instance_index, 2):
+                instance_name = Parameters.instance_type + "_" + "{0:03}".format(i)
+                adjacency_list, n_nodes, n_edges = Utilities.get_adjacency_list(instance_name + '.gr')
+                ts_alg = IteratedLocalSearch(adjacency_list, n_nodes, n_edges)
+                s = ts_alg.ts_algorithm()
+                print("Tree depth for instance " + instance_name + ": ", s.fitness)
+                formatted_solution = Utilities.convert_to_pace_format(s)
+                Utilities.save_solution(instance_name, formatted_solution, s.fitness)
 
 
 main()
