@@ -2,12 +2,12 @@ import signal
 import time
 
 
-class signal_handler:
-    finish_proccess = False
+class SignalHandler:
+    finish_process = False
 
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
     def exit_gracefully(self, signum, frame):
-        self.finish_proccess = True
+        self.finish_process = True

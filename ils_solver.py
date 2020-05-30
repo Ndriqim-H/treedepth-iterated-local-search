@@ -1,38 +1,84 @@
-import Parameters
 from copy import *
-from Solution import Solution
 import random
-import Utilities
 import sys
+import os
 from operator import itemgetter
 from queue import Queue
 from queue import LifoQueue
 from math import log2
-import pandas as pd
+import signal
+
+# Problem related parameters
+node_type_selection_probability = {'subtree': 10, 'internal': 15, 'leaf': 2.5, 'leafs': 5, 'root': 2.5, 'top': 15,
+                                   'bottom': 10, 'level': 5, 'path': 5, 'partial_path': 10, 'partial_path_bottom': 20}
+random_walk_limit = 0.9
+sub_tree_size_probability = 0.8
+top_max_limit_probability = 0.8
+bottom_depth_max_limit_probability = 0.05
+
+# Instance selection
+instance_type = 'exact'
+start_instance_index = 23
+end_instance_index = start_instance_index + 1
+recursion_limit = 100000000
+
+
+class Killer:
+    exit_now = False
+
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit)
+        signal.signal(signal.SIGTERM, self.exit)
+
+    def exit(self, signum, frame):
+        self.exit_now = True
+
+
+class Solution:
+    def __init__(self, _root, _representation, _fitness):
+        self.root = _root
+        self.representation = copy(_representation)
+        self.fitness = _fitness
 
 
 class IteratedLocalSearch:
-    def __init__(self, _adjacency_list, _n_nodes, _n_edges):
-        self.adjacency_list = _adjacency_list
-        self.n_nodes = _n_nodes
-        self.n_edges = _n_edges
-        if Parameters.fully_random_initial_solution:
+    def __init__(self, file_name):
+        self.n_list = list()
+        self.e_list = list()
+        self.adjacency_list, n_nodes, n_edges = self.get_adjacency_list(file_name)
+        self.n_nodes = n_nodes
+        self.n_edges = n_edges
+        self.number_of_iterations = 50000
+        self.number_of_iterations_with_no_improvement = 250
+        self.number_of_tweaks = 10
+        self.tabu_list_length_probability = 0.0
+        self.fully_random_initial_solution = False
+        self.perturbed_solution_deprecation_percentage = 0.7
+        self.insert_nodes_in_initial_solution_descending_order = True
+        self.insert_nodes_in_random_order = False
+        self.insert_nodes_in_descending_order = True
+        self.max_number_of_paths = 50
+        self.max_number_of_paths_list = [30, 40, 50, 60, 70, 80, 90, 100]
+        self.max_partial_path_length_percentage = 0.9
+        self.minimal_perturb_intensity = int(1.5 * log2(self.n_nodes * self.n_edges))
+        self.terminate_without_improvement_iterations = 10000
+        if self.fully_random_initial_solution:
             self.number_of_edges_list = random.sample(range(0, self.n_nodes), self.n_nodes)
         else:
             self.number_of_edges_list = self.create_number_of_edges_list()
         self.tabu_list = {}
-        Parameters.minimal_perturb_intensity = 1 * int(log2(self.n_nodes * self.n_edges))
 
-    def ts_algorithm(self):
+    def ils_algorithm(self):
+        killer = Killer()
         current = self.get_initial_solution()
         best = copy(current)
         iteration_counter = 1
         iteration_no_improvement_counter = 1
-        while iteration_counter <= Parameters.number_of_iterations:
+        while iteration_counter <= self.number_of_iterations:
             tweak_counter = 1
             current_tweak = copy(current)
             new_solution_node_list = list()
-            while tweak_counter <= Parameters.number_of_tweaks:
+            while tweak_counter <= self.number_of_tweaks:
                 selected_nodes, node_type = self.select_nodes(current_tweak, iteration_counter)
                 new_solution = self.move_node(current_tweak, selected_nodes, node_type)
                 if new_solution.fitness <= current_tweak.fitness:
@@ -50,34 +96,34 @@ class IteratedLocalSearch:
                 self.tabu_list[tabu_feature] = iteration_counter
             if current.fitness < best.fitness:
                 best = copy(current)
-                # print("Best fitness: ", best.fitness)
                 iteration_no_improvement_counter = 0
-                # Parameters.insert_nodes_in_random_order = False
-                # Parameters.insert_nodes_in_descending_order = True
-                Parameters.max_number_of_paths = 50
+                self.max_number_of_paths = 50
             else:
                 iteration_no_improvement_counter += 1
-            if iteration_no_improvement_counter % Parameters.number_of_iterations_with_no_improvement == 0:
+            if iteration_no_improvement_counter % self.number_of_iterations_with_no_improvement == 0:
                 current = self.perturb(best, iteration_counter, iteration_no_improvement_counter)
-                # Parameters.insert_nodes_in_random_order = not Parameters.insert_nodes_in_random_order
-                # Parameters.insert_nodes_in_descending_order = not Parameters.insert_nodes_in_descending_order
-                Parameters.max_number_of_paths = Parameters.max_number_of_paths_list[
-                    random.randrange(0, len(Parameters.max_number_of_paths_list))]
+                # insert_nodes_in_random_order = not insert_nodes_in_random_order
+                # insert_nodes_in_descending_order = not insert_nodes_in_descending_order
+                self.max_number_of_paths = self.max_number_of_paths_list[
+                    random.randrange(0, len(self.max_number_of_paths_list))]
             iteration_counter += 1
-            if iteration_no_improvement_counter > 50 * Parameters.number_of_iterations_with_no_improvement:
+            if iteration_no_improvement_counter > self.terminate_without_improvement_iterations:
                 break
+        if killer.exit_now:
+            output_format_solution = self.convert_to_pace_format(best)
+            self.save_solution(instance_name, output_format_solution, best.fitness)
         return best
 
     def perturb(self, s: Solution, iteration_counter, iteration_no_improvement_counter):
         current_solution = copy(s)
         additional_perturbations = int(log2(
-            int(1 + iteration_no_improvement_counter / Parameters.number_of_iterations_with_no_improvement)))
-        for i in range(Parameters.minimal_perturb_intensity + additional_perturbations):
+            int(1 + iteration_no_improvement_counter / self.number_of_iterations_with_no_improvement)))
+        for i in range(self.minimal_perturb_intensity + additional_perturbations):
             selected_nodes, node_type = self.select_nodes(current_solution, iteration_counter)
             new_solution = self.move_node(current_solution, selected_nodes, node_type)
             additional_deprecation = additional_perturbations / 100
             if new_solution.fitness * (
-                    Parameters.perturbed_solution_deprecation_percentage - additional_deprecation) < current_solution.fitness:
+                    self.perturbed_solution_deprecation_percentage - additional_deprecation) < current_solution.fitness:
                 current_solution = copy(new_solution)
         return current_solution
 
@@ -100,81 +146,81 @@ class IteratedLocalSearch:
         tabu_status = True
         while tabu_status:
             random_number = random.randrange(0, 101)
-            if random_number <= Parameters.node_type_selection_probability['subtree']:
+            if random_number <= node_type_selection_probability['subtree']:
                 selected_nodes = self.get_sub_tree_nodes(s.representation, s.fitness, s.root)
                 node_type = 'subtree'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal']:
                 selected_nodes = [self.get_internal_node(s.representation, s.root)]
                 node_type = 'internal'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf']:
                 selected_nodes = [self.get_leaf_node(s.representation)]
                 node_type = 'leaf'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf'] + \
-                    Parameters.node_type_selection_probability['root']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf'] + \
+                    node_type_selection_probability['root']:
                 selected_nodes = [s.root]
                 node_type = 'root'
                 tabu_status = False
                 break
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf'] + \
-                    Parameters.node_type_selection_probability['root'] + \
-                    Parameters.node_type_selection_probability['top']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf'] + \
+                    node_type_selection_probability['root'] + \
+                    node_type_selection_probability['top']:
                 selected_nodes = self.get_top_nodes(s)
                 node_type = 'top'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf'] + \
-                    Parameters.node_type_selection_probability['root'] + \
-                    Parameters.node_type_selection_probability['top'] + \
-                    Parameters.node_type_selection_probability['level']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf'] + \
+                    node_type_selection_probability['root'] + \
+                    node_type_selection_probability['top'] + \
+                    node_type_selection_probability['level']:
                 selected_nodes = self.get_longer_level_nodes(s)
                 node_type = 'level'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf'] + \
-                    Parameters.node_type_selection_probability['root'] + \
-                    Parameters.node_type_selection_probability['top'] + \
-                    Parameters.node_type_selection_probability['level'] + \
-                    Parameters.node_type_selection_probability['path']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf'] + \
+                    node_type_selection_probability['root'] + \
+                    node_type_selection_probability['top'] + \
+                    node_type_selection_probability['level'] + \
+                    node_type_selection_probability['path']:
                 selected_nodes = self.get_longer_path_nodes(s)
                 node_type = 'path'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf'] + \
-                    Parameters.node_type_selection_probability['root'] + \
-                    Parameters.node_type_selection_probability['top'] + \
-                    Parameters.node_type_selection_probability['level'] + \
-                    Parameters.node_type_selection_probability['path'] + \
-                    Parameters.node_type_selection_probability['leafs']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf'] + \
+                    node_type_selection_probability['root'] + \
+                    node_type_selection_probability['top'] + \
+                    node_type_selection_probability['level'] + \
+                    node_type_selection_probability['path'] + \
+                    node_type_selection_probability['leafs']:
                 selected_nodes = self.get_leaf_nodes_with_non_related_parent(s.representation, s.root)
                 node_type = 'leafs'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf'] + \
-                    Parameters.node_type_selection_probability['root'] + \
-                    Parameters.node_type_selection_probability['top'] + \
-                    Parameters.node_type_selection_probability['level'] + \
-                    Parameters.node_type_selection_probability['path'] + \
-                    Parameters.node_type_selection_probability['leafs'] + \
-                    Parameters.node_type_selection_probability['partial_path']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf'] + \
+                    node_type_selection_probability['root'] + \
+                    node_type_selection_probability['top'] + \
+                    node_type_selection_probability['level'] + \
+                    node_type_selection_probability['path'] + \
+                    node_type_selection_probability['leafs'] + \
+                    node_type_selection_probability['partial_path']:
                 selected_nodes = self.get_partial_path_nodes(s)
                 node_type = 'partial_path'
-            elif random_number <= Parameters.node_type_selection_probability['subtree'] + \
-                    Parameters.node_type_selection_probability['internal'] + \
-                    Parameters.node_type_selection_probability['leaf'] + \
-                    Parameters.node_type_selection_probability['root'] + \
-                    Parameters.node_type_selection_probability['top'] + \
-                    Parameters.node_type_selection_probability['level'] + \
-                    Parameters.node_type_selection_probability['path'] + \
-                    Parameters.node_type_selection_probability['leafs'] + \
-                    Parameters.node_type_selection_probability['partial_path'] + \
-                    Parameters.node_type_selection_probability['partial_path_bottom']:
+            elif random_number <= node_type_selection_probability['subtree'] + \
+                    node_type_selection_probability['internal'] + \
+                    node_type_selection_probability['leaf'] + \
+                    node_type_selection_probability['root'] + \
+                    node_type_selection_probability['top'] + \
+                    node_type_selection_probability['level'] + \
+                    node_type_selection_probability['path'] + \
+                    node_type_selection_probability['leafs'] + \
+                    node_type_selection_probability['partial_path'] + \
+                    node_type_selection_probability['partial_path_bottom']:
                 selected_nodes = self.get_partial_path_from_bottom_nodes(s.representation, s.fitness, s.root)
                 node_type = 'partial_path_bottom'
             else:
@@ -192,7 +238,7 @@ class IteratedLocalSearch:
         result = list()
         q_parents = Queue()
         q_parents.put([s.root])
-        top_depth = random.randrange(2, int(s.fitness * Parameters.top_max_limit_probability) + 1)
+        top_depth = random.randrange(2, int(s.fitness * top_max_limit_probability) + 1)
         for d in range(top_depth):
             parents = q_parents.get()
             children = list()
@@ -206,7 +252,7 @@ class IteratedLocalSearch:
     def get_longer_level_nodes(self, s: Solution):
         result = self.get_level_nodes(s)
         max_level = len(result)
-        for i in range(random.randrange(1, Parameters.max_number_of_paths)):
+        for i in range(random.randrange(1, self.max_number_of_paths)):
             node_to_move_list = self.get_level_nodes(s)
             if len(node_to_move_list) > max_level:
                 result = node_to_move_list
@@ -245,7 +291,7 @@ class IteratedLocalSearch:
     def get_longer_path_nodes(self, s: Solution):
         result = self.get_path_nodes(s)
         max_path = len(result)
-        for i in range(random.randrange(1, Parameters.max_number_of_paths)):
+        for i in range(random.randrange(1, self.max_number_of_paths)):
             node_to_move_list = self.get_path_nodes(s)
             if len(node_to_move_list) > max_path:
                 result = node_to_move_list
@@ -255,14 +301,14 @@ class IteratedLocalSearch:
     def get_partial_path_nodes(self, s: Solution):
         all_path_nodes_list = self.get_path_nodes(s)
         max_path = len(all_path_nodes_list)
-        for i in range(random.randrange(1, Parameters.max_number_of_paths)):
+        for i in range(random.randrange(1, self.max_number_of_paths)):
             node_to_move_list = self.get_path_nodes(s)
             if len(node_to_move_list) > max_path:
                 all_path_nodes_list = node_to_move_list
                 max_path = len(node_to_move_list)
         all_path_nodes = len(all_path_nodes_list)
         partial_path_start_position = all_path_nodes - random.randrange(1, max(2, int(
-            all_path_nodes * Parameters.max_partial_path_length_percentage)))
+            all_path_nodes * self.max_partial_path_length_percentage)))
         result = list()
         # print("path length: ", (all_path_nodes - partial_path_start_position))
         for i in range(partial_path_start_position - 1, all_path_nodes):
@@ -273,7 +319,7 @@ class IteratedLocalSearch:
         top_nodes = list()
         q_parents = Queue()
         q_parents.put([s.root])
-        bottom_depth = random.randrange(1, max(2, int(s.fitness * Parameters.bottom_depth_max_limit_probability) + 1))
+        bottom_depth = random.randrange(1, max(2, int(s.fitness * bottom_depth_max_limit_probability) + 1))
         for d in range(s.fitness - bottom_depth):
             parents = q_parents.get()
             children = list()
@@ -288,7 +334,7 @@ class IteratedLocalSearch:
     @staticmethod
     def get_leaf_node(representation: list):
         random_start_index = random.randrange(0, len(representation))
-        random_walk = random.randrange(0, int(Parameters.random_walk_limit * len(representation)))
+        random_walk = random.randrange(0, int(random_walk_limit * len(representation)))
         rw_counter = 0
         node = random_start_index
         while node < len(representation):
@@ -325,7 +371,7 @@ class IteratedLocalSearch:
 
     def get_internal_node(self, representation: list, root):
         random_start_index = random.randrange(0, len(representation))
-        random_walk = random.randrange(0, int(Parameters.random_walk_limit * len(representation)))
+        random_walk = random.randrange(0, int(random_walk_limit * len(representation)))
         rw_counter = 0
         node = random_start_index
         while node < len(representation):
@@ -349,7 +395,7 @@ class IteratedLocalSearch:
 
     def get_sub_tree_nodes(self, representation: list, fitness, root):
         random_start_index = random.randrange(0, len(representation))
-        random_walk = random.randrange(1, max(2, int(Parameters.sub_tree_size_probability * fitness)))
+        random_walk = random.randrange(1, max(2, int(sub_tree_size_probability * fitness)))
         node = random_start_index
         while node < len(representation):
             if len(representation[node]) == 0:
@@ -371,7 +417,7 @@ class IteratedLocalSearch:
 
     def get_partial_path_from_bottom_nodes(self, representation: list, fitness, root):
         random_start_index = random.randrange(0, len(representation))
-        random_walk = random.randrange(1, max(2, int(Parameters.max_partial_path_length_percentage * fitness)))
+        random_walk = random.randrange(1, max(2, int(self.max_partial_path_length_percentage * fitness)))
         node = random_start_index
         result = list()
         while node < len(representation):
@@ -691,7 +737,7 @@ class IteratedLocalSearch:
     def is_tabu(self, key, iteration):
         if key not in self.tabu_list.keys():
             return False
-        if iteration - self.tabu_list[key] <= Parameters.tabu_list_length_probability * self.n_nodes:
+        if iteration - self.tabu_list[key] <= self.tabu_list_length_probability * self.n_nodes:
             return True
         else:
             return False
@@ -701,7 +747,7 @@ class IteratedLocalSearch:
         for i in range(len(self.adjacency_list)):
             node_list_with_n_edges.append([i, len(self.adjacency_list[i])])
         node_list_with_n_edges.sort(key=itemgetter(1),
-                                    reverse=Parameters.insert_nodes_in_initial_solution_descending_order)
+                                    reverse=self.insert_nodes_in_initial_solution_descending_order)
         current_max_n_edges = node_list_with_n_edges[0][1]
         result = list()
         current_list = list()
@@ -718,13 +764,13 @@ class IteratedLocalSearch:
         return result
 
     def get_ordered_node_list(self, node_list: list):
-        if Parameters.insert_nodes_in_random_order:
+        if self.insert_nodes_in_random_order:
             random.shuffle(node_list)
             return node_list
         node_list_with_n_edges = list()
         for node in node_list:
             node_list_with_n_edges.append([node, len(self.adjacency_list[node])])
-        node_list_with_n_edges.sort(key=itemgetter(1), reverse=Parameters.insert_nodes_in_descending_order)
+        node_list_with_n_edges.sort(key=itemgetter(1), reverse=self.insert_nodes_in_descending_order)
         current_max_n_edges = node_list_with_n_edges[0][1]
         result = list()
         current_list = list()
@@ -740,9 +786,85 @@ class IteratedLocalSearch:
         result.extend(current_list)
         return result
 
+    def get_fitness(self, representation, root):
+        result = 1 + self.calculate_fitness(representation, root)
+        return result
 
-def main():
-    sys.setrecursionlimit(Parameters.recursion_limit)
+    def calculate_fitness(self, representation, parent):
+        child_list = representation[parent]
+        if len(child_list) == 0:
+            fitness = 0
+        elif len(child_list) == 1:
+            fitness = 1 + self.calculate_fitness(representation, child_list[0])
+        else:
+            max_fitness = -1
+            for child in child_list:
+                current_fitness = 1 + self.calculate_fitness(representation, child)
+                if current_fitness > max_fitness:
+                    max_fitness = current_fitness
+            fitness = max_fitness
+        return fitness
+
+    def get_adjacency_list(self, file_name):
+        adjacency_list = {}
+        # edge_graph = nx.Graph()
+        file = open('instances/' + file_name, 'r')
+        first_line = file.readline().split(' ')
+        total_points = int(first_line[2])
+        self.n_list.append(int(first_line[2]))
+        n_nodes = int(first_line[2])
+        self.e_list.append(int(first_line[3]))
+        n_edges = int(first_line[3])
+        self.fill_adjacency_list(total_points, adjacency_list)
+        file_rows = filter(None, file.read().split('\n'))
+        for row in file_rows:
+            element = row.split(' ')
+            node1 = int(element[0]) - 1  # convert node1 to a zero based index
+            node2 = int(element[1]) - 1  # convert node2 to a zero based index
+            # edge_graph.add_edge(node1, node2)
+            if node1 in adjacency_list:
+                adjacency_list[node1].append(node2)
+            if node2 in adjacency_list:
+                adjacency_list[node2].append(node1)
+        return adjacency_list, n_nodes, n_edges
+
+    def fill_adjacency_list(self, total_points, adjacency_list):
+        for i in range(total_points):
+            adjacency_list[i] = []
+
+    def convert_to_pace_format(self, s: Solution):
+        result = [-1] * len(s.representation)
+        result[s.root] = 0  # revert to one based index
+        for i in range(len(s.representation)):
+            node_list = s.representation[i]
+            if len(node_list) > 0:
+                for node in node_list:
+                    result[node] = i + 1  # revert to one based index
+        return result
+
+    def save_solution(self, _output_file, formatted_solution: list, fitness):
+        file_name = _output_file[0:9]
+        file = open('solutions/' + file_name + '.tree', "w+")
+        file.write(str(fitness) + "\n")
+        for i in formatted_solution:
+            file.write(str(i) + "\n")
+        file.close()
+
+    @staticmethod
+    def count_duplicates_test(representation: list):
+        duplicate_list = list()
+        for c in range(len(representation)):
+            child_list = representation[c]
+            for node in child_list:
+                if node in duplicate_list:
+                    return True
+                else:
+                    duplicate_list.append(node)
+        return False
+
+
+if __name__ == '__main__':
+    sys.setrecursionlimit(recursion_limit)
     if len(sys.argv) == 1:
         print("The input instance is not specified!")
     elif len(sys.argv) > 2:
@@ -753,27 +875,22 @@ def main():
         instance_argument = instance_argument[2:]
         if instance_argument[0:5] == 'exact':
             instance_name = instance_argument
-            adjacency_list, n_nodes, n_edges = Utilities.get_adjacency_list(instance_name)
-            ts_alg = IteratedLocalSearch(adjacency_list, n_nodes, n_edges)
-            s = ts_alg.ts_algorithm()
+            ils_alg = IteratedLocalSearch(instance_name)
+            s = ils_alg.ils_algorithm()
             print("Tree depth for instance " + instance_name + ": ", s.fitness)
-            formatted_solution = Utilities.convert_to_pace_format(s)
-            Utilities.save_solution(instance_name, formatted_solution, s.fitness)
+            formatted_solution = ils_alg.convert_to_pace_format(s)
+            ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
         else:
             if instance_argument == 'private':
-                Parameters.start_instance_index = 2
-                Parameters.end_instance_index = 200
+                start_instance_index = 2
+                end_instance_index = 200
             elif instance_argument == 'public':
-                Parameters.start_instance_index = 1
-                Parameters.end_instance_index = 199
-            for i in range(Parameters.start_instance_index, Parameters.end_instance_index, 2):
-                instance_name = Parameters.instance_type + "_" + "{0:03}".format(i)
-                adjacency_list, n_nodes, n_edges = Utilities.get_adjacency_list(instance_name + '.gr')
-                ts_alg = IteratedLocalSearch(adjacency_list, n_nodes, n_edges)
-                s = ts_alg.ts_algorithm()
-                print("Tree depth for instance " + instance_name + ": ", s.fitness)
-                formatted_solution = Utilities.convert_to_pace_format(s)
-                Utilities.save_solution(instance_name, formatted_solution, s.fitness)
-
-
-main()
+                start_instance_index = 1
+                end_instance_index = 199
+            for i in range(start_instance_index, end_instance_index, 2):
+                instance_name = instance_type + "_" + "{0:03}".format(i)
+                ils_alg = IteratedLocalSearch(instance_name + '.gr')
+                s = ils_alg.ils_algorithm()
+                print("Tree depth for instance '" + instance_name + ".gr' is {0}. ".format(s.fitness))
+                formatted_solution = ils_alg.convert_to_pace_format(s)
+                ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
