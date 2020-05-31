@@ -18,14 +18,12 @@ Installation and running
 
 -In the folder, where the solver is saved, create a new folder named ‘solutions’ where the solutions will be saved
 
--Open the console of a Python3 interpreter (example Anaconda Prompt (Anaconda3))
-
 -Run the algorithm in of the three modes as described below:
 
-•	Run a single instance by writing this command: ils_solver.py --exact_001.gr
+•	Run a single instance by writing this command: python ils_solver.py --exact_001.gr
 
-•	Run all private instances by writing this command: ils_solver.py --private
+•	Run all private instances by writing this command: python ils_solver.py --private
 
-•	Run all public instances by writing this command: ils_solver.py --public
+•	Run all public instances by writing this command: python ils_solver.py --public
 
 Note that if you send the SIGINT signal to the solver, when the algorithm is run to solve all private/public instances, the solution to the current instance will be saved to the disk, and then, the solver will proceed with next instance, until it solves all the instances (i.e. the instance exact_200.gr for private data set, or  the instance exact_199.gr for the public data set)
