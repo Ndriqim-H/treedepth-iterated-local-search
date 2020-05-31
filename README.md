@@ -1,6 +1,7 @@
 # treedepth-iterated-local-search
 
 Short description
+
 This is a solver for the tree depth problem, which the topic of PACE 2020 competition. The solver is based on the iterated local search algorighm, whilst it utilizes also features from tabu search methauristc.It is developed by using Python3 and intepreted through Anaconda3 distribution.
 
 Dependencies
@@ -11,6 +12,7 @@ Dependencies
 
 
 Installatin and running
+
 Download the script ils_solver.py
 In the folder, where the solver is saved, create a new folder named 'instances' and place all private (and/or) public instances of the tree-depth problem 
 In the folder, where the solver is saved, create a new folder named ‘solutions’ where the solutions will be saved
