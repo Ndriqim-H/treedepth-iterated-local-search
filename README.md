@@ -4,6 +4,7 @@ Short description
 This is a solver for the tree depth problem, which the topic of PACE 2020 competition. The solver is based on the iterated local search algorighm, whilst it utilizes also features from tabu search methauristc.It is developed by using Python3 and intepreted through Anaconda3 distribution.
 
 Dependencies
+
 •	Operator library (operator — Standard operators as functions - https://docs.python.org/3/library/operator.html#module-operator)
 •	Queue library (queue — A synchronized queue class - https://docs.python.org/3/library/queue.html)
 
