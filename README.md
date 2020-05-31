@@ -2,7 +2,7 @@
 
 Short description
 
-This is a solver for the tree depth problem, which the topic of PACE 2020 competition. The solver is based on the iterated local search algorighm, whilst it utilizes also features from tabu search methauristc.It is developed by using Python3 and intepreted through Anaconda3 distribution.
+This is a solver for the tree depth problem, which the topic of PACE 2020 competition. The solver is based on the iterated local search algorithm, whilst it utilizes also features from tabu search methauristc. It is developed by using Python3 and interpreted through Anaconda 3 distribution.
 
 Dependencies
 
@@ -28,3 +28,4 @@ Installation and running
 
 •	Run all public instances by writing this command: ils_solver.py --public
 
+Note that if you send the SIGINT signal to the solver, when the algorithm is run to solve all private/public instances, the solution to the current instance will be saved to the disk, and then, the solver will proceed with next instance, until it solves all the instances (i.e. the instance exact_200.gr for private data set, or  the instance exact_199.gr for the public data set)
