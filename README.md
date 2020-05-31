@@ -6,6 +6,7 @@ This is a solver for the tree depth problem, which the topic of PACE 2020 compet
 Dependencies
 
 •	Operator library (operator — Standard operators as functions - https://docs.python.org/3/library/operator.html#module-operator)
+
 •	Queue library (queue — A synchronized queue class - https://docs.python.org/3/library/queue.html)
 
 
