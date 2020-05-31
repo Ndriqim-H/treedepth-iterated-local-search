@@ -12,15 +12,15 @@ Dependencies
 
 Installation and running
 
-Download the script ils_solver.py
+-Download the script ils_solver.py
 
-In the folder, where the solver is saved, create a new folder named 'instances' and place all private (and/or) public instances of the tree-depth problem 
+-In the folder, where the solver is saved, create a new folder named 'instances' and place all private (and/or public) instances of the tree-depth problem 
 
-In the folder, where the solver is saved, create a new folder named ‘solutions’ where the solutions will be saved
+-In the folder, where the solver is saved, create a new folder named ‘solutions’ where the solutions will be saved
 
-Open the console of a Python3 interpreter (example Anaconda Prompt (Anaconda3))
+-Open the console of a Python3 interpreter (example Anaconda Prompt (Anaconda3))
 
-Run the algorithm in of the three modes as described below:
+-Run the algorithm in of the three modes as described below:
 
 •	Run a single instance by writing this command: ils_solver.py --exact_001.gr
 
