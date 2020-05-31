@@ -28,3 +28,4 @@ Installation and running
 
 •	Run all public instances by writing this command: ils_solver.py --public
 
+Note that if you send the SIGINT signal to the solver, when the algorithm is run to solve all private/public instances, the solution to the current instance will be saved to the disk, and then, the solver will proceed with next instance, until it solves all the instances (i.e. the instance exact_200.gr for private data set, or  the instance exact_199.gr for the public data set)
