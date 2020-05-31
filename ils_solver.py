@@ -852,9 +852,10 @@ class IteratedLocalSearch:
                 file.write(str(i) + "\n")
             file.close()
         except OSError as e:
-            print("Make sure that you have created a folder named 'solutions'",end=" ")
+            print("Make sure that you have created a folder named 'solutions'", end=" ")
             print("in the same folder where you have saved the solver ")
             print("Error message: " + e.strerror)
+            exit()
 
     @staticmethod
     def count_duplicates_test(representation: list):
@@ -899,12 +900,12 @@ if __name__ == '__main__':
                     instance_name = instance_type + "_" + "{0:03}".format(i)
                     ils_alg = IteratedLocalSearch(instance_name + '.gr')
                     s = ils_alg.ils_algorithm()
-                    print("The tree depth for instance '" + instance_name + ".gr' is '{0}' ".format(s.fitness),end="")
+                    print("The tree depth for instance '" + instance_name + ".gr' is '{0}' ".format(s.fitness), end="")
                     print("and the the corresponding solution is saved in the folder named 'solutions'.")
                     formatted_solution = ils_alg.convert_to_pace_format(s)
                     ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
         except OSError as e:
             print("Instance '" + instance_name + "' not found!")
-            print("Make sure that all private/public instances are placed in a folder named 'instances',")
+            print("Make sure that all private/public instances are placed in a folder named 'instances',", end="")
             print("which should be located in the same folder as the solver.")
             print("Error message: " + e.strerror)
