@@ -109,9 +109,10 @@ class IteratedLocalSearch:
             iteration_counter += 1
             if iteration_no_improvement_counter > self.terminate_without_improvement_iterations:
                 break
-        if killer.exit_now:
-            output_format_solution = self.convert_to_pace_format(best)
-            self.save_solution(instance_name, output_format_solution, best.fitness)
+            if killer.exit_now:
+                output_format_solution = self.convert_to_pace_format(best)
+                self.save_solution(instance_name, output_format_solution, best.fitness)
+                break
         return best
 
     def perturb(self, s: Solution, iteration_counter, iteration_no_improvement_counter):
@@ -844,11 +845,16 @@ class IteratedLocalSearch:
 
     def save_solution(self, _output_file, formatted_solution: list, fitness):
         file_name = _output_file[0:9]
-        file = open('solutions/' + file_name + '.tree', "w+")
-        file.write(str(fitness) + "\n")
-        for i in formatted_solution:
-            file.write(str(i) + "\n")
-        file.close()
+        try:
+            file = open('solutions/' + file_name + '.tree', "w+")
+            file.write(str(fitness) + "\n")
+            for i in formatted_solution:
+                file.write(str(i) + "\n")
+            file.close()
+        except OSError as e:
+            print("Make sure that you have created a folder named 'solutions'",end=" ")
+            print("in the same folder where you have saved the solver ")
+            print("Error message: " + e.strerror)
 
     @staticmethod
     def count_duplicates_test(representation: list):
@@ -870,27 +876,35 @@ if __name__ == '__main__':
     elif len(sys.argv) > 2:
         print("Too many arguments")
     else:
-        instance_argument = sys.argv[1]
-        instance_argument.lower()
-        instance_argument = instance_argument[2:]
-        if instance_argument[0:5] == 'exact':
-            instance_name = instance_argument
-            ils_alg = IteratedLocalSearch(instance_name)
-            s = ils_alg.ils_algorithm()
-            print("Tree depth for instance " + instance_name + ": ", s.fitness)
-            formatted_solution = ils_alg.convert_to_pace_format(s)
-            ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
-        else:
-            if instance_argument == 'private':
-                start_instance_index = 2
-                end_instance_index = 200
-            elif instance_argument == 'public':
-                start_instance_index = 1
-                end_instance_index = 199
-            for i in range(start_instance_index, end_instance_index, 2):
-                instance_name = instance_type + "_" + "{0:03}".format(i)
-                ils_alg = IteratedLocalSearch(instance_name + '.gr')
+        try:
+            instance_argument = sys.argv[1]
+            instance_argument = instance_argument.lower()
+            instance_argument = instance_argument[2:]
+            if instance_argument[0:5] == 'exact':
+                instance_name = instance_argument
+                ils_alg = IteratedLocalSearch(instance_name)
                 s = ils_alg.ils_algorithm()
-                print("Tree depth for instance '" + instance_name + ".gr' is {0}. ".format(s.fitness))
+                print("The tree depth for instance '" + instance_name + "' is '{0}' ".format(s.fitness), end="")
+                print("and the the corresponding solution is saved in the folder named 'solutions'.")
                 formatted_solution = ils_alg.convert_to_pace_format(s)
                 ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
+            else:
+                if instance_argument == 'private':
+                    start_instance_index = 2
+                    end_instance_index = 200
+                elif instance_argument == 'public':
+                    start_instance_index = 1
+                    end_instance_index = 199
+                for i in range(start_instance_index, end_instance_index + 1, 2):
+                    instance_name = instance_type + "_" + "{0:03}".format(i)
+                    ils_alg = IteratedLocalSearch(instance_name + '.gr')
+                    s = ils_alg.ils_algorithm()
+                    print("The tree depth for instance '" + instance_name + ".gr' is '{0}' ".format(s.fitness),end="")
+                    print("and the the corresponding solution is saved in the folder named 'solutions'.")
+                    formatted_solution = ils_alg.convert_to_pace_format(s)
+                    ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
+        except OSError as e:
+            print("Instance '" + instance_name + "' not found!")
+            print("Make sure that all private/public instances are placed in a folder named 'instances',")
+            print("which should be located in the same folder as the solver.")
+            print("Error message: " + e.strerror)
