@@ -8,7 +8,7 @@ Dependencies
 
 •	Operator library (operator — Standard operators as functions - https://docs.python.org/3/library/operator.html#module-operator)
 
-•	Queue library (queue — A synchronized queue class - https://docs.python.org/3/library/queue.html)
+•	Queue library (Queue — A synchronized queue class - https://docs.python.org/3/library/queue.html)
 
 Installation and running using Python 2.7
 
