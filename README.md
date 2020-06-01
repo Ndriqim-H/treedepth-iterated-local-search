@@ -10,7 +10,7 @@ Dependencies
 
 •	Queue library (queue — A synchronized queue class - https://docs.python.org/3/library/queue.html)
 
-Installation and running
+Installation and running using Python 7.7
 
 -Download the script ils_solver.py
 
