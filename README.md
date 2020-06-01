@@ -20,7 +20,7 @@ Installation and running
 
 -Run the algorithm in of the three modes as described below:
 
-•	Run a single instance by writing this command: python ils_solver.py --exact_001.gr
+•	Run a single instance (e.g. instance  exact_001.gr) by writing this command: python ils_solver.py --exact_001.gr
 
 •	Run all private instances by writing this command: python ils_solver.py --private
 
