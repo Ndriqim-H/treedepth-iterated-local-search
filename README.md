@@ -8,9 +8,9 @@ Dependencies
 
 •	Operator library (operator — Standard operators as functions - https://docs.python.org/3/library/operator.html#module-operator)
 
-•	Queue library (queue — A synchronized queue class - https://docs.python.org/3/library/queue.html)
+•	Queue library (Queue — A synchronized queue class - https://docs.python.org/3/library/queue.html)
 
-Installation and running
+Installation and running using Python 2.7
 
 -Download the script ils_solver.py
 
@@ -20,7 +20,7 @@ Installation and running
 
 -Run the algorithm in of the three modes as described below:
 
-•	Run a single instance by writing this command: python ils_solver.py --exact_001.gr
+•	Run a single instance (e.g. instance  exact_001.gr) by writing this command: python ils_solver.py --exact_001.gr
 
 •	Run all private instances by writing this command: python ils_solver.py --private
 
