@@ -3,9 +3,8 @@ import random
 import sys
 import os
 from operator import itemgetter
-from queue import Queue
-from queue import LifoQueue
-from math import log2
+from Queue import Queue
+from math import log
 import signal
 
 # Problem related parameters
@@ -60,7 +59,7 @@ class IteratedLocalSearch:
         self.max_number_of_paths = 50
         self.max_number_of_paths_list = [30, 40, 50, 60, 70, 80, 90, 100]
         self.max_partial_path_length_percentage = 0.9
-        self.minimal_perturb_intensity = int(1.5 * log2(self.n_nodes * self.n_edges))
+        self.minimal_perturb_intensity = int(1.5 * log(self.n_nodes * self.n_edges,2))
         self.terminate_without_improvement_iterations = 10000
         if self.fully_random_initial_solution:
             self.number_of_edges_list = random.sample(range(0, self.n_nodes), self.n_nodes)
@@ -115,10 +114,10 @@ class IteratedLocalSearch:
                 break
         return best
 
-    def perturb(self, s: Solution, iteration_counter, iteration_no_improvement_counter):
+    def perturb(self, s, iteration_counter, iteration_no_improvement_counter):
         current_solution = copy(s)
-        additional_perturbations = int(log2(
-            int(1 + iteration_no_improvement_counter / self.number_of_iterations_with_no_improvement)))
+        additional_perturbations = int(log(
+            int(1 + iteration_no_improvement_counter / self.number_of_iterations_with_no_improvement),2))
         for i in range(self.minimal_perturb_intensity + additional_perturbations):
             selected_nodes, node_type = self.select_nodes(current_solution, iteration_counter)
             new_solution = self.move_node(current_solution, selected_nodes, node_type)
@@ -128,7 +127,7 @@ class IteratedLocalSearch:
                 current_solution = copy(new_solution)
         return current_solution
 
-    def get_key(self, new_solution: Solution):
+    def get_key(self, new_solution):
         key = self.solution_node_sequence(new_solution.representation, new_solution.root)
         return key
 
@@ -143,7 +142,7 @@ class IteratedLocalSearch:
                 result = str(child) + self.solution_node_sequence(representation, child)
         return result
 
-    def select_nodes(self, s: Solution, iteration_counter):
+    def select_nodes(self, s, iteration_counter):
         tabu_status = True
         while tabu_status:
             random_number = random.randrange(0, 101)
@@ -235,7 +234,7 @@ class IteratedLocalSearch:
         return selected_nodes, node_type
 
     @staticmethod
-    def get_top_nodes(s: Solution):
+    def get_top_nodes(s):
         result = list()
         q_parents = Queue()
         q_parents.put([s.root])
@@ -250,7 +249,7 @@ class IteratedLocalSearch:
             q_parents.put(children)
         return result
 
-    def get_longer_level_nodes(self, s: Solution):
+    def get_longer_level_nodes(self, s):
         result = self.get_level_nodes(s)
         max_level = len(result)
         for i in range(random.randrange(1, self.max_number_of_paths)):
@@ -261,7 +260,7 @@ class IteratedLocalSearch:
         return result
 
     @staticmethod
-    def get_level_nodes(s: Solution):
+    def get_level_nodes(s):
         q_parents = Queue()
         q_parents.put([s.root])
         depth_level = random.randrange(2, s.fitness + 1)
@@ -275,7 +274,7 @@ class IteratedLocalSearch:
         return parents
 
     @staticmethod
-    def get_path_nodes(s: Solution):
+    def get_path_nodes(s):
         result = list()
         parent = s.root
         leaf_level_reached = False
@@ -289,7 +288,7 @@ class IteratedLocalSearch:
                 leaf_level_reached = True
         return result
 
-    def get_longer_path_nodes(self, s: Solution):
+    def get_longer_path_nodes(self, s):
         result = self.get_path_nodes(s)
         max_path = len(result)
         for i in range(random.randrange(1, self.max_number_of_paths)):
@@ -299,7 +298,7 @@ class IteratedLocalSearch:
                 max_path = len(node_to_move_list)
         return result
 
-    def get_partial_path_nodes(self, s: Solution):
+    def get_partial_path_nodes(self, s):
         all_path_nodes_list = self.get_path_nodes(s)
         max_path = len(all_path_nodes_list)
         for i in range(random.randrange(1, self.max_number_of_paths)):
@@ -316,7 +315,7 @@ class IteratedLocalSearch:
             result.append(all_path_nodes_list[i])
         return result
 
-    def get_bottom_nodes(self, s: Solution):
+    def get_bottom_nodes(self, s):
         top_nodes = list()
         q_parents = Queue()
         q_parents.put([s.root])
@@ -333,7 +332,7 @@ class IteratedLocalSearch:
         return result
 
     @staticmethod
-    def get_leaf_node(representation: list):
+    def get_leaf_node(representation):
         random_start_index = random.randrange(0, len(representation))
         random_walk = random.randrange(0, int(random_walk_limit * len(representation)))
         rw_counter = 0
@@ -349,7 +348,7 @@ class IteratedLocalSearch:
                 node = 0
 
     @staticmethod
-    def get_leaf_nodes(representation: list):
+    def get_leaf_nodes(representation):
         result = list()
         for node in range(len(representation)):
             child_list = representation[node]
@@ -357,7 +356,7 @@ class IteratedLocalSearch:
                 result.append(node)
         return result
 
-    def get_leaf_nodes_with_non_related_parent(self, representation: list, root):
+    def get_leaf_nodes_with_non_related_parent(self, representation, root):
         result = list()
         for node in range(len(representation)):
             child_list = representation[node]
@@ -370,7 +369,7 @@ class IteratedLocalSearch:
                     result.append(node)
         return result
 
-    def get_internal_node(self, representation: list, root):
+    def get_internal_node(self, representation, root):
         random_start_index = random.randrange(0, len(representation))
         random_walk = random.randrange(0, int(random_walk_limit * len(representation)))
         rw_counter = 0
@@ -394,7 +393,7 @@ class IteratedLocalSearch:
                 node = 0
         return result
 
-    def get_sub_tree_nodes(self, representation: list, fitness, root):
+    def get_sub_tree_nodes(self, representation, fitness, root):
         random_start_index = random.randrange(0, len(representation))
         random_walk = random.randrange(1, max(2, int(sub_tree_size_probability * fitness)))
         node = random_start_index
@@ -416,7 +415,7 @@ class IteratedLocalSearch:
         result.extend(self.get_node_successors(representation, current_leaf_node))
         return result
 
-    def get_partial_path_from_bottom_nodes(self, representation: list, fitness, root):
+    def get_partial_path_from_bottom_nodes(self, representation, fitness, root):
         random_start_index = random.randrange(0, len(representation))
         random_walk = random.randrange(1, max(2, int(self.max_partial_path_length_percentage * fitness)))
         node = random_start_index
@@ -456,8 +455,8 @@ class IteratedLocalSearch:
                 result.extend(self.get_node_successors(representation, child))
         return result
 
-    def move_node(self, s: Solution, nodes_to_move, node_type):
-        representation: list = deepcopy(s.representation)
+    def move_node(self, s, nodes_to_move, node_type):
+        representation = deepcopy(s.representation)
         if node_type == 'root':
             node_to_move = nodes_to_move[0]
             current_root_child_list = s.representation[s.root]
@@ -728,7 +727,7 @@ class IteratedLocalSearch:
         return fitness
 
     @staticmethod
-    def find_non_root_parent_node(representation: list, node):
+    def find_non_root_parent_node(representation, node):
         for c in range(len(representation)):
             child_list = representation[c]
             if node in child_list:
@@ -764,7 +763,7 @@ class IteratedLocalSearch:
         result.extend(current_list)
         return result
 
-    def get_ordered_node_list(self, node_list: list):
+    def get_ordered_node_list(self, node_list):
         if self.insert_nodes_in_random_order:
             random.shuffle(node_list)
             return node_list
@@ -833,7 +832,7 @@ class IteratedLocalSearch:
         for i in range(total_points):
             adjacency_list[i] = []
 
-    def convert_to_pace_format(self, s: Solution):
+    def convert_to_pace_format(self, s):
         result = [-1] * len(s.representation)
         result[s.root] = 0  # revert to one based index
         for i in range(len(s.representation)):
@@ -843,7 +842,7 @@ class IteratedLocalSearch:
                     result[node] = i + 1  # revert to one based index
         return result
 
-    def save_solution(self, _output_file, formatted_solution: list, fitness):
+    def save_solution(self, _output_file, formatted_solution, fitness):
         file_name = _output_file[0:9]
         try:
             file = open('solutions/' + file_name + '.tree', "w+")
@@ -852,13 +851,13 @@ class IteratedLocalSearch:
                 file.write(str(i) + "\n")
             file.close()
         except OSError as e:
-            print("Make sure that you have created a folder named 'solutions'", end=" ")
-            print("in the same folder where you have saved the solver ")
+            print(
+                "Make sure that you have created a folder named 'solutions' in the same folder where you have saved the solver ")
             print("Error message: " + e.strerror)
             exit()
 
     @staticmethod
-    def count_duplicates_test(representation: list):
+    def count_duplicates_test(representation):
         duplicate_list = list()
         for c in range(len(representation)):
             child_list = representation[c]
@@ -885,8 +884,8 @@ if __name__ == '__main__':
                 instance_name = instance_argument
                 ils_alg = IteratedLocalSearch(instance_name)
                 s = ils_alg.ils_algorithm()
-                print("The tree depth for instance '" + instance_name + "' is '{0}' ".format(s.fitness), end="")
-                print("and the the corresponding solution is saved in the folder named 'solutions'.")
+                print("The tree depth for instance '" + instance_name + "' is '{0}' ".format(s.fitness),
+                      "and the the corresponding solution is saved in the folder named 'solutions'.")
                 formatted_solution = ils_alg.convert_to_pace_format(s)
                 ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
             else:
@@ -900,12 +899,12 @@ if __name__ == '__main__':
                     instance_name = instance_type + "_" + "{0:03}".format(i)
                     ils_alg = IteratedLocalSearch(instance_name + '.gr')
                     s = ils_alg.ils_algorithm()
-                    print("The tree depth for instance '" + instance_name + ".gr' is '{0}' ".format(s.fitness), end="")
-                    print("and the the corresponding solution is saved in the folder named 'solutions'.")
+                    print("The tree depth for instance '" + instance_name + ".gr' is '{0}' ".format(s.fitness),
+                          "and the the corresponding solution is saved in the folder named 'solutions'.")
                     formatted_solution = ils_alg.convert_to_pace_format(s)
                     ils_alg.save_solution(instance_name, formatted_solution, s.fitness)
         except OSError as e:
             print("Instance '" + instance_name + "' not found!")
-            print("Make sure that all private/public instances are placed in a folder named 'instances',", end="")
-            print("which should be located in the same folder as the solver.")
+            print("Make sure that all private/public instances are placed in a folder named 'instances',",
+                  "which should be located in the same folder as the solver.")
             print("Error message: " + e.strerror)
