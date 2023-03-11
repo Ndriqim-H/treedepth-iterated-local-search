@@ -457,6 +457,8 @@ class IteratedLocalSearch:
 
     def move_node(self, s, nodes_to_move, node_type):
         representation = deepcopy(s.representation)
+        
+
         if node_type == 'root':
             node_to_move = nodes_to_move[0]
             current_root_child_list = s.representation[s.root]
@@ -666,23 +668,18 @@ class IteratedLocalSearch:
         representation[root].append(first_child)
 
         visited_nodes = []
-        parents_of_visited_nodes = []
+        
 
         visited_nodes_dict = {
             root : [first_child]
         }
-
+        nodes_in_representation = [False] * self.n_nodes
+        nodes_in_representation[root] = True
+        parent_of_visited_nodes = [None] * self.n_nodes
         for n in range(2, self.n_nodes, 1):
             node = self.number_of_edges_list[n]
             is_internal_node = False
-            node_to_link, is_internal_node = self.find_node_to_link2(representation, root, node, visited_nodes, parents_of_visited_nodes, visited_nodes_dict)
-            
-            visited_nodes.append(node)
-            parents_of_visited_nodes.append(node_to_link)
-            if(node_to_link in visited_nodes_dict):
-                visited_nodes_dict[node_to_link].append(node)
-            else:
-                visited_nodes_dict[node_to_link] = [node]
+            node_to_link, is_internal_node = self.find_node_to_link2(representation, root, node, nodes_in_representation, parent_of_visited_nodes)
 
             if is_internal_node:
                 child_list = representation[node_to_link]
@@ -726,17 +723,22 @@ class IteratedLocalSearch:
         return node_to_link, is_internal_node
 
 
-    def find_node_to_link2(self, representation, root, node, visited_nodes, parents_of_visited_nodes, visited_nodes_dict):
+    def find_node_to_link2(self, representation, root, node, nodes_in_representation = [], parents_of_visited_nodes = []):
 
         neighbors = self.adjacency_list[node]
         neighbors_in_representation = []
         parents_of_neighbors = []
-        
-        for i, n in enumerate(representation):
-            for neighbor in neighbors:
-                if(neighbor in n):
-                    neighbors_in_representation.append(neighbor)
-                    parents_of_neighbors.append(i)
+        for n in neighbors:
+            if(nodes_in_representation[n]):
+                neighbors_in_representation.append(n)
+                parents_of_neighbors.append(parents_of_visited_nodes[n])
+
+
+        # for i, n in enumerate(representation):
+        #     for neighbor in neighbors:
+        #         if(neighbor in n):
+        #             neighbors_in_representation.append(neighbor)
+        #             parents_of_neighbors.append(i)
 
         # for key, value in visited_nodes_dict.items():
         #     for n in value:
@@ -750,10 +752,12 @@ class IteratedLocalSearch:
         #         if(neighbor == visited_nodes[i]):
         #             neighbors_in_representation.append(neighbor)
         #             parents_of_neighbors.append(i)
-
+        nodes_in_representation[node] = True
         if(len(neighbors_in_representation) == 0):
+            parents_of_visited_nodes[node] = root
             return root, False
         elif(len(neighbors_in_representation) == 1):
+            parents_of_visited_nodes[node] = neighbors_in_representation[0]
             return neighbors_in_representation[0], False
 
         else:
@@ -761,9 +765,11 @@ class IteratedLocalSearch:
             
             while True:
                 if(highest_parent == root):
+                    parents_of_visited_nodes[node] = root
                     return root, True
 
                 if(self.valid_parent(highest_parent, representation, neighbors_in_representation)):
+                    parents_of_visited_nodes[node] = highest_parent
                     return highest_parent, True
                 else:
                     highest_parent = self.find_parent_in_representation(root, highest_parent, representation)
@@ -1018,7 +1024,7 @@ if __name__ == '__main__':
 
                 # instance_type = "heur"
                 start_instance_index = 1
-                end_instance_index = 15
+                end_instance_index = 2
                 for i in range(start_instance_index, end_instance_index + 1, 2):
                     instance_name = instance_type + "_" + "{0:03}".format(i)
                     # instance_name = "exact_021"
