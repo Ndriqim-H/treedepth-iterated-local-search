@@ -3,7 +3,7 @@ import random
 import sys
 import os
 from operator import itemgetter
-from Queue import Queue
+from queue import Queue
 from math import log
 import signal
 
@@ -628,6 +628,7 @@ class IteratedLocalSearch:
         is_internal_node = False
         node_to_link, is_internal_node = self.find_node_to_link(representation, parent, current_node_to_link, node,
                                                                 is_internal_node)
+        # node_to_link, is_internal_node = self.find_node_to_link2(representation, parent, node)
         if is_internal_node:
             child_list = representation[node_to_link]
             representation[node_to_link] = list()
@@ -663,10 +664,26 @@ class IteratedLocalSearch:
         root = self.number_of_edges_list[0]
         first_child = self.number_of_edges_list[1]
         representation[root].append(first_child)
+
+        visited_nodes = []
+        parents_of_visited_nodes = []
+
+        visited_nodes_dict = {
+            root : [first_child]
+        }
+
         for n in range(2, self.n_nodes, 1):
             node = self.number_of_edges_list[n]
             is_internal_node = False
-            node_to_link, is_internal_node = self.find_node_to_link(representation, root, root, node, is_internal_node)
+            node_to_link, is_internal_node = self.find_node_to_link2(representation, root, node, visited_nodes, parents_of_visited_nodes, visited_nodes_dict)
+            
+            visited_nodes.append(node)
+            parents_of_visited_nodes.append(node_to_link)
+            if(node_to_link in visited_nodes_dict):
+                visited_nodes_dict[node_to_link].append(node)
+            else:
+                visited_nodes_dict[node_to_link] = [node]
+
             if is_internal_node:
                 child_list = representation[node_to_link]
                 representation[node_to_link] = list()
@@ -676,6 +693,7 @@ class IteratedLocalSearch:
                 representation[node_to_link].append(node)
         fitness = self.get_fitness(representation, root)
         result = Solution(root, representation, fitness)
+        # print(self.number_of_edges_list)
         # if fitness < 11:
         #     print('test')
         return result
@@ -706,6 +724,108 @@ class IteratedLocalSearch:
                         is_internal_node = True
                         break
         return node_to_link, is_internal_node
+
+
+    def find_node_to_link2(self, representation, root, node, visited_nodes, parents_of_visited_nodes, visited_nodes_dict):
+
+        neighbors = self.adjacency_list[node]
+        neighbors_in_representation = []
+        parents_of_neighbors = []
+        
+        for i, n in enumerate(representation):
+            for neighbor in neighbors:
+                if(neighbor in n):
+                    neighbors_in_representation.append(neighbor)
+                    parents_of_neighbors.append(i)
+
+        # for key, value in visited_nodes_dict.items():
+        #     for n in value:
+        #         if(n in neighbors):
+        #             neighbors_in_representation.append(n)
+        #             parents_of_neighbors.append(key)
+
+        
+        # for neighbor in neighbors:
+        #     for i in range(len(visited_nodes)):
+        #         if(neighbor == visited_nodes[i]):
+        #             neighbors_in_representation.append(neighbor)
+        #             parents_of_neighbors.append(i)
+
+        if(len(neighbors_in_representation) == 0):
+            return root, False
+        elif(len(neighbors_in_representation) == 1):
+            return neighbors_in_representation[0], False
+
+        else:
+            highest_parent = self.find_highest_parent(parents_of_neighbors, root, representation)
+            
+            while True:
+                if(highest_parent == root):
+                    return root, True
+
+                if(self.valid_parent(highest_parent, representation, neighbors_in_representation)):
+                    return highest_parent, True
+                else:
+                    highest_parent = self.find_parent_in_representation(root, highest_parent, representation)
+            
+
+
+            return highest_parent, True
+            
+            return parents_of_neighbors[0], True
+
+        return True
+        
+    def find_highest_parent(self, parents, root, representation):
+        queue = [root]
+        while len(queue) > 0:
+            curr_node = queue.pop(0)
+            if(curr_node in parents):
+                return curr_node
+            for node in representation[curr_node]:
+                queue.append(node)
+
+        return root
+
+    def find_parent_in_representation(self, root, node, representation):
+        queue = [root]
+        while(len(queue) > 0):
+            curr_node = queue.pop(0)
+            if(node in representation[curr_node]):
+                return curr_node
+
+            for n in representation[curr_node]:
+                queue.append(n)
+
+        return root
+
+    def valid_parent(self, parent, representation, neighbors_in_representation):
+        # visited = [False for i in range(len(representation))]
+        visited = []
+        
+        stack = []
+        stack.append(parent)
+        count = 0
+        while len(stack) > 0:
+            curr_node = stack.pop()
+            
+            if(curr_node not in visited):
+                visited.append(curr_node)
+            
+            for node in representation[curr_node]:
+                if(node not in visited):
+                    stack.append(node)
+                
+        if(len(representation[curr_node]) == 0):
+                for v in visited:
+                    if(v in neighbors_in_representation):
+                        count += 1
+
+                if(count != len(neighbors_in_representation)):
+                    return False
+                else:
+                    return True
+        return False
 
     def get_fitness(self, representation, root):
         result = 1 + self.calculate_fitness(representation, root)
@@ -895,8 +1015,13 @@ if __name__ == '__main__':
                 elif instance_argument == 'public':
                     start_instance_index = 1
                     end_instance_index = 199
+
+                # instance_type = "heur"
+                start_instance_index = 1
+                end_instance_index = 15
                 for i in range(start_instance_index, end_instance_index + 1, 2):
                     instance_name = instance_type + "_" + "{0:03}".format(i)
+                    # instance_name = "exact_021"
                     ils_alg = IteratedLocalSearch(instance_name + '.gr')
                     s = ils_alg.ils_algorithm()
                     print("The tree depth for instance '" + instance_name + ".gr' is '{0}' ".format(s.fitness),
